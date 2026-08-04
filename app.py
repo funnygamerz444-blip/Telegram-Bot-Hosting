@@ -446,25 +446,27 @@ def handle_like(message):
             return
 
     sent_msg = bot.send_message(message.chat.id, "⏳ *[ 1/3 ] Connecting to game server...*", parse_mode='Markdown')
-    time.sleep(1)
+    
+    api_url = f"http://br-raja-info-v3.vercel.app/accinfo?uid={uid}&region={region}"
 
     try:
         bot.edit_message_text("⚡ *[ 2/3 ] Sending likes to player profile...*", chat_id=message.chat.id, message_id=sent_msg.message_id, parse_mode='Markdown')
     except:
         pass
 
-    api_url = f"http://br-raja-info-v3.vercel.app/accinfo?uid={uid}&region={region}"
-
     try:
-        response = requests.get(api_url, timeout=10)
+        response = requests.get(api_url, timeout=15)
         response.raise_for_status()
         data = response.json()
     except Exception as e:
-        bot.delete_message(message.chat.id, sent_msg.message_id)
+        try:
+            bot.delete_message(message.chat.id, sent_msg.message_id)
+        except:
+            pass
         error_msg = (
             "❌ *API CONNECTION ERROR*\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
-            f"`{str(e)}`\n"
+            f"Server timeout or error: `{str(e)}`\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
@@ -472,8 +474,8 @@ def handle_like(message):
         return
 
     try:
-        name = data['basicInfo']['nickname']
-        likes_after = int(data['basicInfo']['liked'])
+        name = data.get('basicInfo', {}).get('nickname', 'Unknown Player')
+        likes_after = int(data.get('basicInfo', {}).get('liked', 0))
         likes_given = random.randint(110, 200)
         likes_before = max(0, likes_after - likes_given)
 
@@ -507,25 +509,22 @@ def handle_like(message):
         
         template += "\n━━━━━━━━━━━━━━━━━━━━━\nBot By: LDR-YSN"
 
-        bot.delete_message(message.chat.id, sent_msg.message_id)
+        try:
+            bot.delete_message(message.chat.id, sent_msg.message_id)
+        except:
+            pass
+            
         bot.send_photo(message.chat.id, PHOTO_SUCCESS, caption=template, parse_mode='Markdown')
 
-    except KeyError:
-        bot.delete_message(message.chat.id, sent_msg.message_id)
-        error_msg = (
-            "❌ *ERROR: INVALID UID*\n"
-            "━━━━━━━━━━━━━━━━━━━━━\n"
-            "Player not found or invalid UID/region combination.\n"
-            "━━━━━━━━━━━━━━━━━━━━━\n"
-            "🤖 Bot By: `LDR-YSN`"
-        )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
     except Exception as e:
-        bot.delete_message(message.chat.id, sent_msg.message_id)
+        try:
+            bot.delete_message(message.chat.id, sent_msg.message_id)
+        except:
+            pass
         error_msg = (
-            "❌ *UNEXPECTED ERROR*\n"
+            "❌ *PARSING ERROR*\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
-            f"`{str(e)}`\n"
+            f"Invalid data structure from API.\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
