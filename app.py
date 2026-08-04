@@ -5,24 +5,7 @@ import json
 import os
 import time
 from datetime import datetime, timedelta, timezone
-from flask import Flask
-import threading
-
-# --------------------- WEB SERVICE (FLASK SERVER) ---------------------
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "I am alive and LDR Like Bot is running 24/7!"
-
-def run():
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
-
-def keep_alive():
-    t = threading.Thread(target=run)
-    t.daemon = True
-    t.start()
-# ----------------------------------------------------------------------
+from flask import Flask, request
 
 # --------------------- BOT CONFIG ---------------------
 API_TOKEN = '8897085401:AAGKBqYHum_eLUO-VQ1AKbCWMcVh6amhVJs'
@@ -39,6 +22,23 @@ CHANNEL_BUTTONS = [
 DATA_FILE = 'bot-data.json'
 DAILY_LIMIT = 2  # Daily Free Limit
 COOLDOWN_TIME = 300  # 5 Minutes Cooldown
+
+# --------------------- WEB SERVICE (FLASK SERVER) ---------------------
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "I am alive and LDR Like Bot is running 24/7!"
+
+@app.route(f'/{API_TOKEN}', methods=['POST'])
+def webhook():
+    if request.headers.get('content-type') == 'application/json':
+        json_string = request.get_data().decode('utf-8')
+        update = telebot.types.Update.de_json(json_string)
+        bot.process_new_updates([update])
+        return "OK", 200
+    else:
+        return "Invalid Request", 403
 
 # --------------------- DATA PERSISTENCE ---------------------
 def load_data():
@@ -447,7 +447,7 @@ def handle_like(message):
 
         # Step 1: Connecting Status
         sent_msg = bot.send_message(message.chat.id, "🔄 *Connecting to game server... [1/3]*", parse_mode='Markdown')
-        time.sleep(0.6)
+        time.sleep(0.4)
 
         # Step 2: Fetching Data Status
         try:
@@ -534,21 +534,7 @@ def handle_like(message):
     except Exception as e:
         print(f"Like command error: {e}")
 
-# --------------------- RUNNER WITH AUTO RECONNECT ---------------------
+# --------------------- RUNNER ---------------------
 if __name__ == "__main__":
-    print("🚀 LDR LIKE BOT✨ Iꜱ Rᴜɴɴɪɴɢ 24/7 🏃‍♂️")
-    keep_alive()  
-    
-    # Remove any stuck webhook instantly to avoid Conflict error
-    try:
-        bot.remove_webhook()
-        time.sleep(1)
-    except Exception as e:
-        print(f"Webhook remove error: {e}")
-
-    while True:
-        try:
-            bot.infinity_polling(skip_pending=True, timeout=60, long_polling_timeout=60)
-        except Exception as e:
-            print(f"Polling error: {e}")
-            time.sleep(5)
+    print("🚀 LDR Like Bot is Running 24/7...")
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
