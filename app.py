@@ -39,14 +39,23 @@ DATA_FILE = 'bot-data.json'
 DAILY_LIMIT = 2  # Daily Free Limit
 COOLDOWN_TIME = 300  # 5 Minutes Cooldown
 
-# --- HACKING THEMED BANNER IMAGES ---
+# --- DIRECT WORKING THEMED BANNER IMAGES ---
 PHOTO_WELCOME = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800"
-PHOTO_SUCCESS = "https://i.ibb.co.com/841050G/like-success.jpg"
-PHOTO_ERROR = "https://i.ibb.co.com/4g3862W/limit-reach.jpg"
+PHOTO_SUCCESS = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800"
+PHOTO_ERROR = "https://images.unsplash.com/photo-1594324159103-2410a01121d5?w=800"
 PHOTO_BONUS = "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800"
 PHOTO_REFERRAL = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800"
 PHOTO_LEADERBOARD = "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800"
 PHOTO_SUPPORT = "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800"
+
+# --------------------- SAFE PHOTO SENDER ---------------------
+def send_photo_safe(chat_id, photo_url, caption, reply_markup=None):
+    """কখনও যদি ছবির লিঙ্ক ফেল করে তবে ক্র্যাশ না করে মেসেজ আকারে রিপ্লাই দিবে"""
+    try:
+        return bot.send_photo(chat_id, photo_url, caption=caption, parse_mode='Markdown', reply_markup=reply_markup)
+    except Exception as e:
+        print(f"Photo send error fallback to text: {e}")
+        return bot.send_message(chat_id, caption, parse_mode='Markdown', reply_markup=reply_markup)
 
 # --------------------- DATA PERSISTENCE ---------------------
 def load_data():
@@ -128,7 +137,7 @@ def get_main_menu_keyboard():
     )
     return markup
 
-# --------------------- HANDLERS: START & MENU ---------------------
+# --------------------- HANDLERS: START ---------------------
 @bot.message_handler(commands=['start'])
 def handle_start(message):
     user_id = message.from_user.id
@@ -191,9 +200,9 @@ def handle_start(message):
             file_id = photos.photos[0][0].file_id
             bot.send_photo(message.chat.id, file_id, caption=welcome_text, parse_mode='Markdown', reply_markup=get_main_menu_keyboard())
         else:
-            bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=welcome_text, parse_mode='Markdown', reply_markup=get_main_menu_keyboard())
+            send_photo_safe(message.chat.id, PHOTO_WELCOME, welcome_text, reply_markup=get_main_menu_keyboard())
     except:
-        bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=welcome_text, parse_mode='Markdown', reply_markup=get_main_menu_keyboard())
+        send_photo_safe(message.chat.id, PHOTO_WELCOME, welcome_text, reply_markup=get_main_menu_keyboard())
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_membership")
 def handle_verify(call):
@@ -241,15 +250,16 @@ def menu_my_profile(message):
         "🤖 Bot By: `LDR-YSN`"
     )
     
+    # User Telegram Profile Photo Display
     try:
         photos = bot.get_user_profile_photos(user_id, limit=1)
         if photos.total_count > 0:
             file_id = photos.photos[0][0].file_id
             bot.send_photo(message.chat.id, file_id, caption=profile_text, parse_mode='Markdown')
         else:
-            bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
+            send_photo_safe(message.chat.id, PHOTO_WELCOME, profile_text)
     except:
-        bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
+        send_photo_safe(message.chat.id, PHOTO_WELCOME, profile_text)
 
 @bot.message_handler(func=lambda message: message.text == "🎁 Daily Bonus")
 def menu_daily_bonus(message):
@@ -269,7 +279,7 @@ def menu_daily_bonus(message):
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_BONUS, caption=bonus_text, parse_mode='Markdown')
+        send_photo_safe(message.chat.id, PHOTO_BONUS, bonus_text)
     else:
         daily_bonus[str_user_id] = today
         if str_user_id not in ref_daily_limit or ref_daily_limit[str_user_id]['date'] != today:
@@ -283,7 +293,7 @@ def menu_daily_bonus(message):
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_BONUS, caption=bonus_text, parse_mode='Markdown')
+        send_photo_safe(message.chat.id, PHOTO_BONUS, bonus_text)
 
 @bot.message_handler(func=lambda message: message.text == "👥 Referral System")
 def menu_referral(message):
@@ -307,7 +317,7 @@ def menu_referral(message):
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"🤖 Bot By: `LDR-YSN`"
     )
-    bot.send_photo(message.chat.id, PHOTO_REFERRAL, caption=ref_msg, parse_mode='Markdown')
+    send_photo_safe(message.chat.id, PHOTO_REFERRAL, ref_msg)
 
 @bot.message_handler(func=lambda message: message.text == "🏆 Leaderboard")
 def menu_leaderboard(message):
@@ -328,7 +338,7 @@ def menu_leaderboard(message):
         lb_text += "No one is on the leaderboard yet!\n"
     
     lb_text += "━━━━━━━━━━━━━━━━━━━━━\n🤖 Bot By: `LDR-YSN`"
-    bot.send_photo(message.chat.id, PHOTO_LEADERBOARD, caption=lb_text, parse_mode='Markdown')
+    send_photo_safe(message.chat.id, PHOTO_LEADERBOARD, lb_text)
 
 @bot.message_handler(func=lambda message: message.text == "⚡ Send Like")
 def menu_send_like(message):
@@ -347,7 +357,7 @@ def menu_send_like(message):
         "━━━━━━━━━━━━━━━━━━━━━\n"
         "🤖 Bot By: `LDR-YSN`"
     )
-    bot.send_photo(message.chat.id, PHOTO_SUCCESS, caption=like_guide, parse_mode='Markdown')
+    send_photo_safe(message.chat.id, PHOTO_SUCCESS, like_guide)
 
 @bot.message_handler(func=lambda message: message.text == "🛠 Support")
 def menu_support(message):
@@ -365,7 +375,7 @@ def menu_support(message):
         "━━━━━━━━━━━━━━━━━━━━━\n"
         "🤖 Bot By: `LDR-YSN`"
     )
-    bot.send_photo(message.chat.id, PHOTO_SUPPORT, caption=support_text, parse_mode='Markdown', reply_markup=markup)
+    send_photo_safe(message.chat.id, PHOTO_SUPPORT, support_text, reply_markup=markup)
 
 # --------------------- LIKE HANDLER WITH COOLDOWN ---------------------
 @bot.message_handler(commands=['like'])
@@ -381,14 +391,14 @@ def handle_like(message):
     args = message.text.split()
     if len(args) < 3:
         error_msg = (
-            "❌ *ERROR: INVALID FORMAT*\n"
+            "❌ *LIKE SENT ERROR!*\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "Usage: `/like {region} {uid}`\n"
             "Example: `/like bd 3140070800`\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        send_photo_safe(message.chat.id, PHOTO_ERROR, error_msg)
         return
 
     region = args[1].lower()
@@ -397,13 +407,13 @@ def handle_like(message):
     supported_regions = ['ind', 'id', 'sg', 'my', 'ph', 'bd']
     if region not in supported_regions:
         error_msg = (
-            "❌ *ERROR: UNSUPPORTED REGION*\n"
+            "❌ *LIKE SENT ERROR!*\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Supported: {', '.join(supported_regions)}\n"
+            f"Unsupported Region! Supported: {', '.join(supported_regions)}\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        send_photo_safe(message.chat.id, PHOTO_ERROR, error_msg)
         return
 
     today = get_ist_date()
@@ -424,38 +434,33 @@ def handle_like(message):
             remaining_sec = int(COOLDOWN_TIME - elapsed)
             mins, secs = divmod(remaining_sec, 60)
             cooldown_msg = (
-                "⏳ *COOLDOWN ACTIVE*\n"
+                "❌ *LIKE SENT ERROR!*\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Please wait {mins}m {secs}s before sending another request!\n"
+                f"Cooldown Active! Please wait {mins}m {secs}s!\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.send_photo(message.chat.id, PHOTO_ERROR, caption=cooldown_msg, parse_mode='Markdown')
+            send_photo_safe(message.chat.id, PHOTO_ERROR, cooldown_msg)
             return
 
         current_used = users_data[str_user_id]['count']
         if current_used >= total_allowed_limit:
             limit_msg = (
-                "❌ *DAILY LIMIT REACHED*\n"
+                "❌ *LIKE SENT ERROR!*\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
-                f"Limit: ({current_used}/{total_allowed_limit}). Try again tomorrow or refer friends for extra limits.\n"
+                f"Daily Limit Reached ({current_used}/{total_allowed_limit}). Try tomorrow or refer friends.\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.send_photo(message.chat.id, PHOTO_ERROR, caption=limit_msg, parse_mode='Markdown')
+            send_photo_safe(message.chat.id, PHOTO_ERROR, limit_msg)
             return
 
-    sent_msg = bot.send_message(message.chat.id, "⏳ *[ 1/3 ] Connecting to game server...*", parse_mode='Markdown')
-    
-    api_url = f"http://br-raja-info-v3.vercel.app/accinfo?uid={uid}&region={region}"
+    sent_msg = bot.send_message(message.chat.id, "⏳ *Connecting to game server...*", parse_mode='Markdown')
+
+    api_url = f"https://br-raja-info-v3.vercel.app/accinfo?uid={uid}&region={region}"
 
     try:
-        bot.edit_message_text("⚡ *[ 2/3 ] Sending likes to player profile...*", chat_id=message.chat.id, message_id=sent_msg.message_id, parse_mode='Markdown')
-    except:
-        pass
-
-    try:
-        response = requests.get(api_url, timeout=15)
+        response = requests.get(api_url, timeout=12, headers={'User-Agent': 'Mozilla/5.0'})
         response.raise_for_status()
         data = response.json()
     except Exception as e:
@@ -464,18 +469,19 @@ def handle_like(message):
         except:
             pass
         error_msg = (
-            "❌ *API CONNECTION ERROR*\n"
+            "❌ *LIKE SENT ERROR!*\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Server timeout or error: `{str(e)}`\n"
+            f"API Server Error: `{str(e)}`\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        send_photo_safe(message.chat.id, PHOTO_ERROR, error_msg)
         return
 
     try:
-        name = data.get('basicInfo', {}).get('nickname', 'Unknown Player')
-        likes_after = int(data.get('basicInfo', {}).get('liked', 0))
+        basic_info = data.get('basicInfo', {})
+        name = basic_info.get('nickname', 'Unknown Player')
+        likes_after = int(basic_info.get('liked', 0))
         likes_given = random.randint(110, 200)
         likes_before = max(0, likes_after - likes_given)
 
@@ -490,31 +496,28 @@ def handle_like(message):
         current_time = get_current_time()
 
         template = (
-            f"LIKE SENT\n"
-            f"SUCCESSFUL\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            "LIKE SENT SUCCESSFUL\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
             f"👑 Nᴀᴍᴇ: {name}\n"
             f"🕹️ Uɪᴅ: {uid}\n"
             f"🌐 Rᴇɢɪᴏɴ: {region.upper()}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
             f"🤡 Before Like: {likes_before}\n"
             f"💀 Lɪᴋᴇs Get: {likes_given}\n"
             f"💯 Now Like: {likes_after}\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
             f"📊 Rᴇᴍᴀɪɴɪɴɢ: {remaining_likes}\n"
-            f"⏰ Tɪᴍᴇ: {current_time}"
+            f"⏰ Tɪᴍᴇ: {current_time}\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "Bot By: LDR-YSN"
         )
-        if user_id == OWNER_ID:
-            template += "\n━━━━━━━━━━━━━━━━━━━━━\n👑 OWNER UNLIMITED ACCESS 👑"
-        
-        template += "\n━━━━━━━━━━━━━━━━━━━━━\nBot By: LDR-YSN"
 
         try:
             bot.delete_message(message.chat.id, sent_msg.message_id)
         except:
             pass
-            
-        bot.send_photo(message.chat.id, PHOTO_SUCCESS, caption=template, parse_mode='Markdown')
+
+        send_photo_safe(message.chat.id, PHOTO_SUCCESS, template)
 
     except Exception as e:
         try:
@@ -522,13 +525,13 @@ def handle_like(message):
         except:
             pass
         error_msg = (
-            "❌ *PARSING ERROR*\n"
+            "❌ *LIKE SENT ERROR!*\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Invalid data structure from API.\n"
+            "Player UID not found or region mismatch!\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        send_photo_safe(message.chat.id, PHOTO_ERROR, error_msg)
 
 # --------------------- RUNNER WITH AUTO RECONNECT ---------------------
 if __name__ == "__main__":
