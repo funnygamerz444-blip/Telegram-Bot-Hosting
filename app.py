@@ -39,14 +39,14 @@ DATA_FILE = 'bot-data.json'
 DAILY_LIMIT = 2  # Daily Free Limit
 COOLDOWN_TIME = 300  # 5 Minutes Cooldown
 
-# --- CUSTOM BANNER IMAGE URLS ---
-PHOTO_WELCOME = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800"
-PHOTO_SUCCESS = "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800" # Like Success Banner
-PHOTO_BONUS = "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800"
-PHOTO_REFERRAL = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800"
-PHOTO_LEADERBOARD = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800"
-PHOTO_LIMIT = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800"
-PHOTO_SUPPORT = "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800"
+# --- PROFESSIONAL BANNER IMAGES FOR SECTIONS ---
+PHOTO_WELCOME = "https://i.ibb.co.com/6X73h3m/welcome.jpg"
+PHOTO_SUCCESS = "https://i.ibb.co.com/841050G/like-success.jpg"
+PHOTO_BONUS = "https://i.ibb.co.com/9v83j2v/daily-bonus.jpg"
+PHOTO_REFERRAL = "https://i.ibb.co.com/1Z94f09/referral.jpg"
+PHOTO_LEADERBOARD = "https://i.ibb.co.com/5X08J73/leaderboard.jpg"
+PHOTO_LIMIT = "https://i.ibb.co.com/4g3862W/limit-reach.jpg"
+PHOTO_SUPPORT = "https://i.ibb.co.com/8m59v0F/support.jpg"
 
 # --------------------- DATA PERSISTENCE ---------------------
 def load_data():
@@ -228,7 +228,7 @@ def handle_menu_buttons(message):
             f"━━━━━━━━━━━━━━━━━━━━━"
         )
         
-        # Fetching user's telegram profile photo dynamically
+        # Automatically fetching user's own Telegram profile photo
         try:
             photos = bot.get_user_profile_photos(user_id, limit=1)
             if photos.total_count > 0:
