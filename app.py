@@ -39,14 +39,14 @@ DATA_FILE = 'bot-data.json'
 DAILY_LIMIT = 2  # Daily Free Limit
 COOLDOWN_TIME = 300  # 5 Minutes Cooldown
 
-# --- PROFESSIONAL BANNER IMAGES FOR SECTIONS ---
-PHOTO_WELCOME = "https://i.ibb.co.com/6X73h3m/welcome.jpg"
+# --- HACKING THEMED BANNER IMAGES ---
+PHOTO_WELCOME = "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?w=800"
 PHOTO_SUCCESS = "https://i.ibb.co.com/841050G/like-success.jpg"
-PHOTO_BONUS = "https://i.ibb.co.com/9v83j2v/daily-bonus.jpg"
-PHOTO_REFERRAL = "https://i.ibb.co.com/1Z94f09/referral.jpg"
-PHOTO_LEADERBOARD = "https://i.ibb.co.com/5X08J73/leaderboard.jpg"
-PHOTO_LIMIT = "https://i.ibb.co.com/4g3862W/limit-reach.jpg"
-PHOTO_SUPPORT = "https://i.ibb.co.com/8m59v0F/support.jpg"
+PHOTO_ERROR = "https://i.ibb.co.com/4g3862W/limit-reach.jpg"
+PHOTO_BONUS = "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800"
+PHOTO_REFERRAL = "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=800"
+PHOTO_LEADERBOARD = "https://images.unsplash.com/photo-1614064641938-3bbee52942c7?w=800"
+PHOTO_SUPPORT = "https://images.unsplash.com/photo-1510915361894-db8b60106cb1?w=800"
 
 # --------------------- DATA PERSISTENCE ---------------------
 def load_data():
@@ -176,10 +176,24 @@ def handle_start(message):
         return
 
     welcome_text = (
-        "✅ *Welcome to LDR LIKE BOT✨!*\n\n"
-        "Please select an option from the menu below or use the `/like {region} {uid}` command."
+        "🔐 *MY PROFILE*\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🆔 User ID: `{user_id}`\n"
+        f"📛 Name: {message.from_user.first_name}\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "⚡ Status: `Authorized`\n"
+        "🤖 Bot By: `LDR-YSN`"
     )
-    bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=welcome_text, parse_mode='Markdown', reply_markup=get_main_menu_keyboard())
+    
+    try:
+        photos = bot.get_user_profile_photos(user_id, limit=1)
+        if photos.total_count > 0:
+            file_id = photos.photos[0][0].file_id
+            bot.send_photo(message.chat.id, file_id, caption=welcome_text, parse_mode='Markdown', reply_markup=get_main_menu_keyboard())
+        else:
+            bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=welcome_text, parse_mode='Markdown', reply_markup=get_main_menu_keyboard())
+    except:
+        bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=welcome_text, parse_mode='Markdown', reply_markup=get_main_menu_keyboard())
 
 @bot.callback_query_handler(func=lambda call: call.data == "verify_membership")
 def handle_verify(call):
@@ -196,100 +210,162 @@ def handle_verify(call):
     else:
         bot.answer_callback_query(call.id, "❌ You have not joined all required channels/groups yet!", show_alert=True)
 
-# --------------------- TEXT MENU BUTTON HANDLERS ---------------------
-@bot.message_handler(func=lambda message: message.text in ["👤 My Profile", "🎁 Daily Bonus", "👥 Referral System", "🏆 Leaderboard", "⚡ Send Like", "🛠 Support"])
-def handle_menu_buttons(message):
+# --------------------- INDIVIDUAL BUTTON HANDLERS ---------------------
+@bot.message_handler(func=lambda message: message.text == "👤 My Profile")
+def menu_my_profile(message):
     user_id = message.from_user.id
     str_user_id = str(user_id)
-    text = message.text
     today = get_ist_date()
 
     if not is_user_member(user_id):
         bot.reply_to(message, "⚠️ Please join our official channels/groups first!", reply_markup=get_force_join_markup())
         return
 
-    if text == "👤 My Profile":
-        ref_data = referrals.get(str_user_id, {'count': 0})
-        ref_count = ref_data['count']
-        
-        user_ref_limit = 0
-        if str_user_id in ref_daily_limit and ref_daily_limit[str_user_id]['date'] == today:
-            user_ref_limit = ref_daily_limit[str_user_id]['bonus']
+    ref_data = referrals.get(str_user_id, {'count': 0})
+    ref_count = ref_data['count']
+    
+    user_ref_limit = 0
+    if str_user_id in ref_daily_limit and ref_daily_limit[str_user_id]['date'] == today:
+        user_ref_limit = ref_daily_limit[str_user_id]['bonus']
 
-        total_limit = DAILY_LIMIT + user_ref_limit
-        
-        profile_text = (
-            f"👤 *YOUR PROFILE*\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"🆔 User ID: `{user_id}`\n"
-            f"📛 Name: {message.from_user.first_name}\n"
-            f"🎁 Total Referrals: `{ref_count}`\n"
-            f"⚡ Today's Total Limit: `{total_limit}` Likes\n"
-            f"━━━━━━━━━━━━━━━━━━━━━"
-        )
-        
-        # Automatically fetching user's own Telegram profile photo
-        try:
-            photos = bot.get_user_profile_photos(user_id, limit=1)
-            if photos.total_count > 0:
-                file_id = photos.photos[0][0].file_id
-                bot.send_photo(message.chat.id, file_id, caption=profile_text, parse_mode='Markdown')
-            else:
-                bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
-        except:
-            bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
-
-    elif text == "🎁 Daily Bonus":
-        if daily_bonus.get(str_user_id) == today:
-            bonus_text = "❌ You have already claimed today's daily bonus! Try again tomorrow."
-            bot.send_photo(message.chat.id, PHOTO_BONUS, caption=bonus_text, parse_mode='Markdown')
+    total_limit = DAILY_LIMIT + user_ref_limit
+    
+    profile_text = (
+        "🔐 *MY PROFILE*\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🆔 User ID: `{user_id}`\n"
+        f"📛 Name: {message.from_user.first_name}\n"
+        f"🎁 Total Referrals: `{ref_count}`\n"
+        f"⚡ Today's Total Limit: `{total_limit}` Likes\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🤖 Bot By: `LDR-YSN`"
+    )
+    
+    try:
+        photos = bot.get_user_profile_photos(user_id, limit=1)
+        if photos.total_count > 0:
+            file_id = photos.photos[0][0].file_id
+            bot.send_photo(message.chat.id, file_id, caption=profile_text, parse_mode='Markdown')
         else:
-            daily_bonus[str_user_id] = today
-            if str_user_id not in ref_daily_limit or ref_daily_limit[str_user_id]['date'] != today:
-                ref_daily_limit[str_user_id] = {'date': today, 'bonus': 0}
-            ref_daily_limit[str_user_id]['bonus'] += 1
-            save_data()
-            bonus_text = "🎉 Congratulations! You have successfully received **+1 Extra Like Limit** for today as a daily bonus! 🔥"
-            bot.send_photo(message.chat.id, PHOTO_BONUS, caption=bonus_text, parse_mode='Markdown')
+            bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
+    except:
+        bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
 
-    elif text == "👥 Referral System":
-        bot_username = bot.get_me().username
-        ref_link = f"https://t.me/{bot_username}?start={user_id}"
-        ref_data = referrals.get(str_user_id, {'count': 0})
-        
-        ref_msg = (
-            f"👥 *REFERRAL SYSTEM*\n"
-            f"━━━━━━━━━━━━━━━━━━━━━\n"
-            f"Invite friends and get extra like limits for today!\n\n"
-            f"🔗 *Your Ref Link:*\n`{ref_link}`\n\n"
-            f"📊 Total Referred Users: `{ref_data['count']}`\n"
-            f"━━━━━━━━━━━━━━━━━━━━━"
+@bot.message_handler(func=lambda message: message.text == "🎁 Daily Bonus")
+def menu_daily_bonus(message):
+    user_id = message.from_user.id
+    str_user_id = str(user_id)
+    today = get_ist_date()
+
+    if not is_user_member(user_id):
+        bot.reply_to(message, "⚠️ Please join our official channels/groups first!", reply_markup=get_force_join_markup())
+        return
+
+    if daily_bonus.get(str_user_id) == today:
+        bonus_text = (
+            "🎁 *DAILY BONUS*\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "❌ You have already claimed today's daily bonus! Try again tomorrow.\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_REFERRAL, caption=ref_msg, parse_mode='Markdown')
+        bot.send_photo(message.chat.id, PHOTO_BONUS, caption=bonus_text, parse_mode='Markdown')
+    else:
+        daily_bonus[str_user_id] = today
+        if str_user_id not in ref_daily_limit or ref_daily_limit[str_user_id]['date'] != today:
+            ref_daily_limit[str_user_id] = {'date': today, 'bonus': 0}
+        ref_daily_limit[str_user_id]['bonus'] += 1
+        save_data()
+        bonus_text = (
+            "🎁 *DAILY BONUS*\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🎉 Congratulations! You have successfully received **+1 Extra Like Limit** for today as a daily bonus! 🔥\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🤖 Bot By: `LDR-YSN`"
+        )
+        bot.send_photo(message.chat.id, PHOTO_BONUS, caption=bonus_text, parse_mode='Markdown')
 
-    elif text == "🏆 Leaderboard":
-        sorted_refs = sorted(referrals.items(), key=lambda x: x[1].get('count', 0) if isinstance(x[1], dict) else 0, reverse=True)[:5]
-        lb_text = "🏆 *TOP REFERRAL LEADERBOARD*\n━━━━━━━━━━━━━━━━━━━━━\n"
-        
-        rank = 1
-        for uid, data in sorted_refs:
-            if uid != 'tracked' and isinstance(data, dict):
-                lb_text += f"{rank}. User ID `{uid}` ➔ `{data['count']}` Referrals\n"
-                rank += 1
-        if rank == 1:
-            lb_text += "No one is on the leaderboard yet!"
-        
-        bot.send_photo(message.chat.id, PHOTO_LEADERBOARD, caption=lb_text, parse_mode='Markdown')
+@bot.message_handler(func=lambda message: message.text == "👥 Referral System")
+def menu_referral(message):
+    user_id = message.from_user.id
+    str_user_id = str(user_id)
 
-    elif text == "⚡ Send Like":
-        like_guide = "🎮 Correct format to send likes:\n\n`/like {region} {uid}`\n\nExample:\n`/like bd 3140070800`"
-        bot.send_photo(message.chat.id, PHOTO_SUCCESS, caption=like_guide, parse_mode='Markdown')
+    if not is_user_member(user_id):
+        bot.reply_to(message, "⚠️ Please join our official channels/groups first!", reply_markup=get_force_join_markup())
+        return
 
-    elif text == "🛠 Support":
-        markup = telebot.types.InlineKeyboardMarkup()
-        markup.add(telebot.types.InlineKeyboardButton("💬 Join Support Group", url="https://t.me/ldr_ysn_like_group"))
-        support_text = "🛠 If you face any issues, please contact our support group:"
-        bot.send_photo(message.chat.id, PHOTO_SUPPORT, caption=support_text, parse_mode='Markdown', reply_markup=markup)
+    bot_username = bot.get_me().username
+    ref_link = f"https://t.me/{bot_username}?start={user_id}"
+    ref_data = referrals.get(str_user_id, {'count': 0})
+    
+    ref_msg = (
+        f"👥 *REFERRAL SYSTEM*\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"Invite friends and get extra like limits for today!\n\n"
+        f"🔗 *Your Ref Link:*\n`{ref_link}`\n\n"
+        f"📊 Total Referred Users: `{ref_data['count']}`\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🤖 Bot By: `LDR-YSN`"
+    )
+    bot.send_photo(message.chat.id, PHOTO_REFERRAL, caption=ref_msg, parse_mode='Markdown')
+
+@bot.message_handler(func=lambda message: message.text == "🏆 Leaderboard")
+def menu_leaderboard(message):
+    user_id = message.from_user.id
+    if not is_user_member(user_id):
+        bot.reply_to(message, "⚠️ Please join our official channels/groups first!", reply_markup=get_force_join_markup())
+        return
+
+    sorted_refs = sorted(referrals.items(), key=lambda x: x[1].get('count', 0) if isinstance(x[1], dict) else 0, reverse=True)[:5]
+    lb_text = "🏆 *TOP REFERRAL LEADERBOARD*\n━━━━━━━━━━━━━━━━━━━━━\n"
+    
+    rank = 1
+    for uid, data in sorted_refs:
+        if uid != 'tracked' and isinstance(data, dict):
+            lb_text += f"{rank}. User ID `{uid}` ➔ `{data['count']}` Referrals\n"
+            rank += 1
+    if rank == 1:
+        lb_text += "No one is on the leaderboard yet!\n"
+    
+    lb_text += "━━━━━━━━━━━━━━━━━━━━━\n🤖 Bot By: `LDR-YSN`"
+    bot.send_photo(message.chat.id, PHOTO_LEADERBOARD, caption=lb_text, parse_mode='Markdown')
+
+@bot.message_handler(func=lambda message: message.text == "⚡ Send Like")
+def menu_send_like(message):
+    user_id = message.from_user.id
+    if not is_user_member(user_id):
+        bot.reply_to(message, "⚠️ Please join our official channels/groups first!", reply_markup=get_force_join_markup())
+        return
+
+    like_guide = (
+        "⚡ *SEND LIKE SYSTEM*\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🎮 Correct format to send likes:\n\n"
+        "`/like {region} {uid}`\n\n"
+        "Example:\n"
+        "`/like bd 3140070800`\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🤖 Bot By: `LDR-YSN`"
+    )
+    bot.send_photo(message.chat.id, PHOTO_SUCCESS, caption=like_guide, parse_mode='Markdown')
+
+@bot.message_handler(func=lambda message: message.text == "🛠 Support")
+def menu_support(message):
+    user_id = message.from_user.id
+    if not is_user_member(user_id):
+        bot.reply_to(message, "⚠️ Please join our official channels/groups first!", reply_markup=get_force_join_markup())
+        return
+
+    markup = telebot.types.InlineKeyboardMarkup()
+    markup.add(telebot.types.InlineKeyboardButton("💬 Join Support Group", url="https://t.me/ldr_ysn_like_group"))
+    support_text = (
+        "🛠 *SUPPORT CENTER*\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "If you face any issues, please contact our support group below:\n"
+        "━━━━━━━━━━━━━━━━━━━━━\n"
+        "🤖 Bot By: `LDR-YSN`"
+    )
+    bot.send_photo(message.chat.id, PHOTO_SUPPORT, caption=support_text, parse_mode='Markdown', reply_markup=markup)
 
 # --------------------- LIKE HANDLER WITH COOLDOWN ---------------------
 @bot.message_handler(commands=['like'])
@@ -304,7 +380,15 @@ def handle_like(message):
 
     args = message.text.split()
     if len(args) < 3:
-        bot.reply_to(message, "❌ Usage: `/like {region} {uid}`\nExample: `/like bd 3140070800`", parse_mode='Markdown')
+        error_msg = (
+            "❌ *ERROR: INVALID FORMAT*\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "Usage: `/like {region} {uid}`\n"
+            "Example: `/like bd 3140070800`\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🤖 Bot By: `LDR-YSN`"
+        )
+        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
         return
 
     region = args[1].lower()
@@ -312,7 +396,14 @@ def handle_like(message):
 
     supported_regions = ['ind', 'id', 'sg', 'my', 'ph', 'bd']
     if region not in supported_regions:
-        bot.reply_to(message, f"❌ Invalid region! Supported: {', '.join(supported_regions)}", parse_mode='Markdown')
+        error_msg = (
+            "❌ *ERROR: UNSUPPORTED REGION*\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            f"Supported: {', '.join(supported_regions)}\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🤖 Bot By: `LDR-YSN`"
+        )
+        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
         return
 
     today = get_ist_date()
@@ -332,13 +423,26 @@ def handle_like(message):
         if elapsed < COOLDOWN_TIME:
             remaining_sec = int(COOLDOWN_TIME - elapsed)
             mins, secs = divmod(remaining_sec, 60)
-            bot.reply_to(message, f"⏳ *Please wait {mins}m {secs}s before sending another request!*", parse_mode='Markdown')
+            cooldown_msg = (
+                "⏳ *COOLDOWN ACTIVE*\n"
+                "━━━━━━━━━━━━━━━━━━━━━\n"
+                f"Please wait {mins}m {secs}s before sending another request!\n"
+                "━━━━━━━━━━━━━━━━━━━━━\n"
+                "🤖 Bot By: `LDR-YSN`"
+            )
+            bot.send_photo(message.chat.id, PHOTO_ERROR, caption=cooldown_msg, parse_mode='Markdown')
             return
 
         current_used = users_data[str_user_id]['count']
         if current_used >= total_allowed_limit:
-            limit_msg = f"❌ Daily limit reached! ({current_used}/{total_allowed_limit}). Try again tomorrow or refer friends for extra limits."
-            bot.send_photo(message.chat.id, PHOTO_LIMIT, caption=limit_msg, parse_mode='Markdown')
+            limit_msg = (
+                "❌ *DAILY LIMIT REACHED*\n"
+                "━━━━━━━━━━━━━━━━━━━━━\n"
+                f"Limit: ({current_used}/{total_allowed_limit}). Try again tomorrow or refer friends for extra limits.\n"
+                "━━━━━━━━━━━━━━━━━━━━━\n"
+                "🤖 Bot By: `LDR-YSN`"
+            )
+            bot.send_photo(message.chat.id, PHOTO_ERROR, caption=limit_msg, parse_mode='Markdown')
             return
 
     sent_msg = bot.send_message(message.chat.id, "⏳ *[ 1/3 ] Connecting to game server...*", parse_mode='Markdown')
@@ -356,7 +460,15 @@ def handle_like(message):
         response.raise_for_status()
         data = response.json()
     except Exception as e:
-        bot.edit_message_text(f"❌ API connection error:\n`{str(e)}`", chat_id=message.chat.id, message_id=sent_msg.message_id, parse_mode='Markdown')
+        bot.delete_message(message.chat.id, sent_msg.message_id)
+        error_msg = (
+            "❌ *API CONNECTION ERROR*\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            f"`{str(e)}`\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🤖 Bot By: `LDR-YSN`"
+        )
+        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
         return
 
     try:
@@ -376,7 +488,8 @@ def handle_like(message):
         current_time = get_current_time()
 
         template = (
-            f"🎉 Lɪᴋᴇ Sᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ 👍\n"
+            f"LIKE SENT\n"
+            f"SUCCESSFUL\n"
             f"━━━━━━━━━━━━━━━━━━━━━\n"
             f"👑 Nᴀᴍᴇ: {name}\n"
             f"🕹️ Uɪᴅ: {uid}\n"
@@ -391,15 +504,32 @@ def handle_like(message):
         )
         if user_id == OWNER_ID:
             template += "\n━━━━━━━━━━━━━━━━━━━━━\n👑 OWNER UNLIMITED ACCESS 👑"
+        
+        template += "\n━━━━━━━━━━━━━━━━━━━━━\nBot By: LDR-YSN"
 
-        # Delete processing message and send final success banner with caption
         bot.delete_message(message.chat.id, sent_msg.message_id)
         bot.send_photo(message.chat.id, PHOTO_SUCCESS, caption=template, parse_mode='Markdown')
 
     except KeyError:
-        bot.edit_message_text("❌ Invalid UID or player not found.", chat_id=message.chat.id, message_id=sent_msg.message_id)
+        bot.delete_message(message.chat.id, sent_msg.message_id)
+        error_msg = (
+            "❌ *ERROR: INVALID UID*\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "Player not found or invalid UID/region combination.\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🤖 Bot By: `LDR-YSN`"
+        )
+        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
     except Exception as e:
-        bot.edit_message_text(f"❌ Unexpected error:\n`{str(e)}`", chat_id=message.chat.id, message_id=sent_msg.message_id, parse_mode='Markdown')
+        bot.delete_message(message.chat.id, sent_msg.message_id)
+        error_msg = (
+            "❌ *UNEXPECTED ERROR*\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            f"`{str(e)}`\n"
+            "━━━━━━━━━━━━━━━━━━━━━\n"
+            "🤖 Bot By: `LDR-YSN`"
+        )
+        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
 
 # --------------------- RUNNER WITH AUTO RECONNECT ---------------------
 if __name__ == "__main__":
