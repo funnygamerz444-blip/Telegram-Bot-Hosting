@@ -25,7 +25,7 @@ def keep_alive():
 # ----------------------------------------------------------------------
 
 # --------------------- BOT CONFIG ---------------------
-API_TOKEN = '8897085401:AAFlXYw5NMd2xBtgC8R1XCDZxboQ3MLsfMM'
+API_TOKEN = '8897085401:AAGKBqYHum_eLUO-VQ1AKbCWMcVh6amhVJs'
 bot = telebot.TeleBot(API_TOKEN)
 
 OWNER_ID = 8589721704
