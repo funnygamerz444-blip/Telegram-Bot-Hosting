@@ -39,13 +39,12 @@ DATA_FILE = 'bot-data.json'
 DAILY_LIMIT = 2  # Daily Free Limit
 COOLDOWN_TIME = 300  # 5 Minutes Cooldown
 
-# --- PHOTO BANNER URLS FOR DIFFERENT SECTIONS ---
+# --- CUSTOM BANNER IMAGE URLS ---
 PHOTO_WELCOME = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800"
-PHOTO_PROFILE = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800"
+PHOTO_SUCCESS = "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800" # Like Success Banner
 PHOTO_BONUS = "https://images.unsplash.com/photo-1513151233558-d860c5398176?w=800"
 PHOTO_REFERRAL = "https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800"
-PHOTO_LEADERBOARD = "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800"
-PHOTO_SUCCESS = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800"
+PHOTO_LEADERBOARD = "https://images.unsplash.com/photo-1538481199705-c710c4e965fc?w=800"
 PHOTO_LIMIT = "https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800"
 PHOTO_SUPPORT = "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800"
 
@@ -228,7 +227,17 @@ def handle_menu_buttons(message):
             f"⚡ Today's Total Limit: `{total_limit}` Likes\n"
             f"━━━━━━━━━━━━━━━━━━━━━"
         )
-        bot.send_photo(message.chat.id, PHOTO_PROFILE, caption=profile_text, parse_mode='Markdown')
+        
+        # Fetching user's telegram profile photo dynamically
+        try:
+            photos = bot.get_user_profile_photos(user_id, limit=1)
+            if photos.total_count > 0:
+                file_id = photos.photos[0][0].file_id
+                bot.send_photo(message.chat.id, file_id, caption=profile_text, parse_mode='Markdown')
+            else:
+                bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
+        except:
+            bot.send_photo(message.chat.id, PHOTO_WELCOME, caption=profile_text, parse_mode='Markdown')
 
     elif text == "🎁 Daily Bonus":
         if daily_bonus.get(str_user_id) == today:
