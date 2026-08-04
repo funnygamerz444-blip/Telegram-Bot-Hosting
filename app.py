@@ -13,7 +13,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "I am alive and Bot is running!"
+    return "I am alive and LDR Like Bot is running 24/7!"
 
 def run():
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
@@ -40,10 +40,6 @@ DATA_FILE = 'bot-data.json'
 DAILY_LIMIT = 2  # Daily Free Limit
 COOLDOWN_TIME = 300  # 5 Minutes Cooldown
 
-# --- HOSTED IMAGE LINKS FOR LIKE SUCCESS & ERROR ---
-PHOTO_SUCCESS = "https://i.ibb.co.com/841050G/like-success.jpg"
-PHOTO_ERROR = "https://i.ibb.co.com/4g3862W/limit-reach.jpg"
-
 # --------------------- DATA PERSISTENCE ---------------------
 def load_data():
     if os.path.exists(DATA_FILE):
@@ -69,8 +65,11 @@ def save_data():
         'daily_bonus': daily_bonus,
         'ref_daily_limit': ref_daily_limit
     }
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
+    try:
+        with open(DATA_FILE, 'w') as f:
+            json.dump(data, f, indent=2)
+    except Exception as e:
+        print(f"Data save error: {e}")
 
 db = load_data()
 users_data = db['users_data']
@@ -182,12 +181,15 @@ def handle_verify(call):
     user_id = call.from_user.id
     if is_user_member(user_id):
         bot.answer_callback_query(call.id, "✅ Verification Successful!")
-        bot.edit_message_text(
-            "🎉 *Verification Successful!*\n\nNow you can use the menu below.",
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            parse_mode='Markdown'
-        )
+        try:
+            bot.edit_message_text(
+                "🎉 *Verification Successful!*\n\nNow you can use the menu below.",
+                chat_id=call.message.chat.id,
+                message_id=call.message.message_id,
+                parse_mode='Markdown'
+            )
+        except:
+            pass
         bot.send_message(call.message.chat.id, "👇 Choose an option from the menu:", reply_markup=get_main_menu_keyboard())
     else:
         bot.answer_callback_query(call.id, "❌ You have not joined all required channels/groups yet!", show_alert=True)
@@ -222,16 +224,7 @@ def menu_my_profile(message):
         "━━━━━━━━━━━━━━━━━━━━━\n"
         "🤖 Bot By: `LDR-YSN`"
     )
-    
-    try:
-        photos = bot.get_user_profile_photos(user_id, limit=1)
-        if photos.total_count > 0:
-            file_id = photos.photos[0][0].file_id
-            bot.send_photo(message.chat.id, file_id, caption=profile_text, parse_mode='Markdown')
-        else:
-            bot.reply_to(message, profile_text, parse_mode='Markdown')
-    except:
-        bot.reply_to(message, profile_text, parse_mode='Markdown')
+    bot.reply_to(message, profile_text, parse_mode='Markdown')
 
 @bot.message_handler(func=lambda message: message.text == "🎁 Daily Bonus")
 def menu_daily_bonus(message):
@@ -370,7 +363,7 @@ def handle_like(message):
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        bot.reply_to(message, error_msg, parse_mode='Markdown')
         return
 
     region = args[1].lower()
@@ -385,7 +378,7 @@ def handle_like(message):
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        bot.reply_to(message, error_msg, parse_mode='Markdown')
         return
 
     today = get_ist_date()
@@ -412,7 +405,7 @@ def handle_like(message):
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.send_photo(message.chat.id, PHOTO_ERROR, caption=cooldown_msg, parse_mode='Markdown')
+            bot.reply_to(message, cooldown_msg, parse_mode='Markdown')
             return
 
         current_used = users_data[str_user_id]['count']
@@ -424,7 +417,7 @@ def handle_like(message):
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.send_photo(message.chat.id, PHOTO_ERROR, caption=limit_msg, parse_mode='Markdown')
+            bot.reply_to(message, limit_msg, parse_mode='Markdown')
             return
 
     sent_msg = bot.send_message(message.chat.id, "⏳ *Connecting to game server...*", parse_mode='Markdown')
@@ -447,7 +440,7 @@ def handle_like(message):
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        bot.reply_to(message, error_msg, parse_mode='Markdown')
         return
 
     try:
@@ -468,7 +461,7 @@ def handle_like(message):
         current_time = get_current_time()
 
         template = (
-            "LIKE SENT SUCCESSFUL\n"
+            "✅ *LIKE SENT SUCCESSFUL*\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
             f"👑 Nᴀᴍᴇ: {name}\n"
             f"🕹️ Uɪᴅ: {uid}\n"
@@ -481,7 +474,7 @@ def handle_like(message):
             f"📊 Rᴇᴍᴀɪɴɪɴɢ: {remaining_likes}\n"
             f"⏰ Tɪᴍᴇ: {current_time}\n"
             "━━━━━━━━━━━━━━━━━━━━━\n"
-            "Bot By: LDR-YSN"
+            "🤖 Bot By: `LDR-YSN`"
         )
 
         try:
@@ -489,7 +482,7 @@ def handle_like(message):
         except:
             pass
 
-        bot.send_photo(message.chat.id, PHOTO_SUCCESS, caption=template, parse_mode='Markdown')
+        bot.reply_to(message, template, parse_mode='Markdown')
 
     except Exception as e:
         try:
@@ -503,11 +496,11 @@ def handle_like(message):
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
-        bot.send_photo(message.chat.id, PHOTO_ERROR, caption=error_msg, parse_mode='Markdown')
+        bot.reply_to(message, error_msg, parse_mode='Markdown')
 
 # --------------------- RUNNER WITH AUTO RECONNECT ---------------------
 if __name__ == "__main__":
-    print("🚀 LDR LIKE BOT✨ Iꜱ Rᴜɴɴɪɴɢ 🏃‍♂️")
+    print("🚀 LDR LIKE BOT✨ Iꜱ Rᴜɴɴɪɴɢ 24/7 🏃‍♂️")
     keep_alive()  
     while True:
         try:
