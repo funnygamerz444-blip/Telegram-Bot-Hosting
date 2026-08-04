@@ -5,6 +5,23 @@ import json
 import os
 import time
 from datetime import datetime, timedelta, timezone
+from flask import Flask
+import threading
+
+# --------------------- WEB SERVICE (FLASK SERVER) ---------------------
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "I am alive and Bot is running!"
+
+def run():
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
+
+def keep_alive():
+    t = threading.Thread(target=run)
+    t.start()
+# ----------------------------------------------------------------------
 
 # --------------------- BOT CONFIG ---------------------
 API_TOKEN = '8897085401:AAFlXYw5NMd2xBtgC8R1XCDZxboQ3MLsfMM'
@@ -120,7 +137,7 @@ def handle_start(message):
             if ref_id not in referrals:
                 referrals[ref_id] = {'count': 0, 'bonus_likes': 0}
             referrals[ref_id]['count'] += 1
-            referrals[ref_id]['bonus_likes'] += 1  # রেফার করলে ১টা লাইক বোনাস লিমিট বাড়বে
+            referrals[ref_id]['bonus_likes'] += 1  
             save_data()
             try:
                 bot.send_message(int(ref_id), "🎁 *Referral Alert!*\nSomeone joined via your referral link! You got `+1` Extra Like Limit bonus! 🔥", parse_mode='Markdown')
@@ -195,7 +212,7 @@ def handle_menu_buttons(message):
             daily_bonus[str_user_id] = today
             if str_user_id not in referrals:
                 referrals[str_user_id] = {'count': 0, 'bonus_likes': 0}
-            referrals[str_user_id]['bonus_likes'] += 1  # ডেইলি বোনাসে ১টা লাইক লিমিট ফ্রি
+            referrals[str_user_id]['bonus_likes'] += 1  
             save_data()
             bot.reply_to(message, "🎉 অভিনন্দন! আপনি আজকের ডেইলি বোনাস হিসেবে **+1 Extra Like Limit** সফলভাবে পেয়েছেন! 🔥", parse_mode='Markdown')
 
@@ -216,7 +233,6 @@ def handle_menu_buttons(message):
         bot.reply_to(message, ref_msg, parse_mode='Markdown')
 
     elif text == "🏆 Leaderboard":
-        # টপ ৫ রেফারের লিস্ট তৈরি
         sorted_refs = sorted(referrals.items(), key=lambda x: x[1].get('count', 0) if isinstance(x[1], dict) else 0, reverse=True)[:5]
         lb_text = "🏆 *TOP REFERRAL LEADERBOARD*\n━━━━━━━━━━━━━━━━━━━━━\n"
         
@@ -344,6 +360,7 @@ def handle_like(message):
 # --------------------- RUNNER WITH AUTO RECONNECT ---------------------
 if __name__ == "__main__":
     print("🚀 LDR LIKE BOT✨ Iꜱ Rᴜɴɴɪɴɢ 🏃‍♂️ (All Requested Features Added)")
+    keep_alive()  # ফ্লাক সার্ভার ব্যাকগ্রাউন্ডে রান করবে
     while True:
         try:
             bot.infinity_polling(timeout=30, long_polling_timeout=30)
