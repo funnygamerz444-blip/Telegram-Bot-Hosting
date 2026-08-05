@@ -20,8 +20,12 @@ CHANNEL_BUTTONS = [
 ]
 
 DATA_FILE = 'bot-data.json'
-DAILY_LIMIT = 2  # Daily Free Limit
-COOLDOWN_TIME = 300  # 5 Minutes Cooldown
+DAILY_LIMIT = 5  # Daily Free Limit
+COOLDOWN_TIME = 10   # Cooldown for testing
+
+# Image URLs as requested
+SUCCESS_PHOTO = "https://www.image2url.com/r2/default/images/png-to-jpg-1785910300427-21342662-26d3-4544-8f27-1667eea5a535.jpg"
+ERROR_PHOTO = "https://www.image2url.com/r2/default/images/png-to-jpg-1785910355074-55070836-bcb9-47ba-bdab-e20b4247f73b.jpg"
 
 # --------------------- WEB SERVICE (FLASK SERVER) ---------------------
 app = Flask('')
@@ -51,11 +55,12 @@ def load_data():
                     'referrals': data.get('referrals', {}),
                     'total_users': data.get('total_users', []),
                     'daily_bonus': data.get('daily_bonus', {}),
-                    'ref_daily_limit': data.get('ref_daily_limit', {})
+                    'ref_daily_limit': data.get('ref_daily_limit', {}),
+                    'like_attempts': data.get('like_attempts', {})
                 }
         except:
-            return {'users_data': {}, 'referrals': {}, 'total_users': [], 'daily_bonus': {}, 'ref_daily_limit': {}}
-    return {'users_data': {}, 'referrals': {}, 'total_users': [], 'daily_bonus': {}, 'ref_daily_limit': {}}
+            return {'users_data': {}, 'referrals': {}, 'total_users': [], 'daily_bonus': {}, 'ref_daily_limit': {}, 'like_attempts': {}}
+    return {'users_data': {}, 'referrals': {}, 'total_users': [], 'daily_bonus': {}, 'ref_daily_limit': {}, 'like_attempts': {}}
 
 def save_data():
     data = {
@@ -63,7 +68,8 @@ def save_data():
         'referrals': referrals,
         'total_users': total_users,
         'daily_bonus': daily_bonus,
-        'ref_daily_limit': ref_daily_limit
+        'ref_daily_limit': ref_daily_limit,
+        'like_attempts': like_attempts
     }
     try:
         with open(DATA_FILE, 'w') as f:
@@ -77,6 +83,7 @@ referrals = db['referrals']
 total_users = db['total_users']
 daily_bonus = db['daily_bonus']
 ref_daily_limit = db['ref_daily_limit']
+like_attempts = db.get('like_attempts', {})
 
 def get_ist_date():
     utc_now = datetime.now(timezone.utc)
@@ -231,7 +238,20 @@ def menu_my_profile(message):
             "━━━━━━━━━━━━━━━━━━━━━\n"
             "🤖 Bot By: `LDR-YSN`"
         )
+
+        # Telegram DP Fetching Logic
+        try:
+            photos = bot.get_user_profile_photos(user_id, limit=1)
+            if photos.total_count > 0:
+                file_id = photos.photos[0][-1].file_id
+                bot.send_photo(message.chat.id, file_id, caption=profile_text, parse_mode='Markdown')
+                return
+        except:
+            pass
+
+        # If no profile photo found, send text only
         bot.reply_to(message, profile_text, parse_mode='Markdown')
+
     except Exception as e:
         print(f"Profile error: {e}")
 
@@ -366,10 +386,10 @@ def menu_support(message):
     except Exception as e:
         print(f"Support error: {e}")
 
-# --------------------- LIKE HANDLER WITH MULTI-API FALLBACK ---------------------
+# --------------------- LIKE HANDLER WITH PATTERN: 1st Success, 2nd Error, 3rd Success ---------------------
 @bot.message_handler(commands=['like'])
 def handle_like(message):
-    global users_data
+    global users_data, like_attempts
     try:
         user_id = message.from_user.id
         str_user_id = str(user_id)
@@ -388,13 +408,12 @@ def handle_like(message):
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.reply_to(message, error_msg, parse_mode='Markdown')
+            bot.send_photo(message.chat.id, ERROR_PHOTO, caption=error_msg, parse_mode='Markdown')
             return
 
         region = args[1].lower()
         uid = args[2]
 
-        # Supported Free Fire Servers / Regions
         supported_regions = ['ind', 'id', 'sg', 'my', 'ph', 'bd', 'br', 'ru', 'us', 'tw', 'vn', 'th', 'mea', 'pk', 'sac', 'na', 'eu']
         if region not in supported_regions:
             error_msg = (
@@ -404,11 +423,19 @@ def handle_like(message):
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.reply_to(message, error_msg, parse_mode='Markdown')
+            bot.send_photo(message.chat.id, ERROR_PHOTO, caption=error_msg, parse_mode='Markdown')
             return
 
         today = get_ist_date()
         
+        # Track attempt sequence for pattern: 1st Success, 2nd Error, 3rd Success
+        if str_user_id not in like_attempts or like_attempts[str_user_id]['date'] != today:
+            like_attempts[str_user_id] = {'date': today, 'step': 0}
+        
+        like_attempts[str_user_id]['step'] += 1
+        current_step = like_attempts[str_user_id]['step']
+        save_data()
+
         user_ref_bonus = 0
         if str_user_id in ref_daily_limit and ref_daily_limit[str_user_id]['date'] == today:
             user_ref_bonus = ref_daily_limit[str_user_id]['bonus']
@@ -431,7 +458,7 @@ def handle_like(message):
                     "━━━━━━━━━━━━━━━━━━━━━\n"
                     "🤖 Bot By: `LDR-YSN`"
                 )
-                bot.reply_to(message, cooldown_msg, parse_mode='Markdown')
+                bot.send_photo(message.chat.id, ERROR_PHOTO, caption=cooldown_msg, parse_mode='Markdown')
                 return
 
             current_used = users_data[str_user_id]['count']
@@ -443,20 +470,29 @@ def handle_like(message):
                     "━━━━━━━━━━━━━━━━━━━━━\n"
                     "🤖 Bot By: `LDR-YSN`"
                 )
-                bot.reply_to(message, limit_msg, parse_mode='Markdown')
+                bot.send_photo(message.chat.id, ERROR_PHOTO, caption=limit_msg, parse_mode='Markdown')
                 return
 
-        # Step 1: Connecting Status
+        # 2nd Attempt Intentional Error Condition
+        if current_step % 3 == 2:
+            forced_error_msg = (
+                "❌ *LIKE SENT ERROR!*\n"
+                "━━━━━━━━━━━━━━━━━━━━━\n"
+                "API Server Timeout or Connection Failed!\n"
+                "━━━━━━━━━━━━━━━━━━━━━\n"
+                "🤖 Bot By: `LDR-YSN`"
+            )
+            bot.send_photo(message.chat.id, ERROR_PHOTO, caption=forced_error_msg, parse_mode='Markdown')
+            return
+
         sent_msg = bot.send_message(message.chat.id, "🔄 *Connecting to game server... [1/3]*", parse_mode='Markdown')
         time.sleep(0.3)
 
-        # Step 2: Fetching Data Status
         try:
             bot.edit_message_text("⚡ *Fetching player data & processing... [2/3]*", chat_id=message.chat.id, message_id=sent_msg.message_id, parse_mode='Markdown')
         except:
             pass
 
-        # Multi-API Fallback List (সবগুলো এপিআই ব্যাকআপ হিসেবে যুক্ত করা হলো)
         api_urls = [
             f"https://br-raja-info-v3.vercel.app/accinfo?uid={uid}&region={region}",
             f"https://das-ff-info.netlify.app/info?uid={uid}",
@@ -489,11 +525,10 @@ def handle_like(message):
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.reply_to(message, error_msg, parse_mode='Markdown')
+            bot.send_photo(message.chat.id, ERROR_PHOTO, caption=error_msg, parse_mode='Markdown')
             return
 
         try:
-            # বিভিন্ন এপিআইয়ের আলাদা ফরম্যাট হ্যান্ডেল করার ব্যবস্থা
             basic_info = data.get('basicInfo', data.get('accountInfo', data.get('player_info', data)))
             
             name = basic_info.get('nickname', basic_info.get('name', 'Unknown Player'))
@@ -511,7 +546,6 @@ def handle_like(message):
 
             current_time = get_current_time()
 
-            # Step 3: Finalizing Success Output
             template = (
                 "✅ *LIKE SENT SUCCESSFUL [3/3]*\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
@@ -534,7 +568,7 @@ def handle_like(message):
             except:
                 pass
 
-            bot.reply_to(message, template, parse_mode='Markdown')
+            bot.send_photo(message.chat.id, SUCCESS_PHOTO, caption=template, parse_mode='Markdown')
 
         except Exception as e:
             try:
@@ -548,7 +582,7 @@ def handle_like(message):
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
-            bot.reply_to(message, error_msg, parse_mode='Markdown')
+            bot.send_photo(message.chat.id, ERROR_PHOTO, caption=error_msg, parse_mode='Markdown')
     except Exception as e:
         print(f"Like command error: {e}")
 
