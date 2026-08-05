@@ -366,7 +366,7 @@ def menu_support(message):
     except Exception as e:
         print(f"Support error: {e}")
 
-# --------------------- LIKE HANDLER WITH LIVE PROGRESS & COOLDOWN ---------------------
+# --------------------- LIKE HANDLER WITH MULTI-API FALLBACK ---------------------
 @bot.message_handler(commands=['like'])
 def handle_like(message):
     global users_data
@@ -394,7 +394,8 @@ def handle_like(message):
         region = args[1].lower()
         uid = args[2]
 
-        supported_regions = ['ind', 'id', 'sg', 'my', 'ph', 'bd']
+        # Supported Free Fire Servers / Regions
+        supported_regions = ['ind', 'id', 'sg', 'my', 'ph', 'bd', 'br', 'ru', 'us', 'tw', 'vn', 'th', 'mea', 'pk', 'sac', 'na', 'eu']
         if region not in supported_regions:
             error_msg = (
                 "❌ *LIKE SENT ERROR!*\n"
@@ -447,7 +448,7 @@ def handle_like(message):
 
         # Step 1: Connecting Status
         sent_msg = bot.send_message(message.chat.id, "🔄 *Connecting to game server... [1/3]*", parse_mode='Markdown')
-        time.sleep(0.4)
+        time.sleep(0.3)
 
         # Step 2: Fetching Data Status
         try:
@@ -455,13 +456,28 @@ def handle_like(message):
         except:
             pass
 
-        api_url = f"https://br-raja-info-v3.vercel.app/accinfo?uid={uid}&region={region}"
+        # Multi-API Fallback List (সবগুলো এপিআই ব্যাকআপ হিসেবে যুক্ত করা হলো)
+        api_urls = [
+            f"https://br-raja-info-v3.vercel.app/accinfo?uid={uid}&region={region}",
+            f"https://das-ff-info.netlify.app/info?uid={uid}",
+            f"https://star-info-api.lovable.app/functions/v1/info-api/accinfo?uid={uid}",
+            f"https://jakir-all-rounder.vercel.app/info?uid={uid}&api_key=MNSTR",
+            f"https://info.killersharmabot.online/player-info?uid={uid}"
+        ]
 
-        try:
-            response = requests.get(api_url, timeout=12, headers={'User-Agent': 'Mozilla/5.0'})
-            response.raise_for_status()
-            data = response.json()
-        except Exception as e:
+        data = None
+        for api_url in api_urls:
+            try:
+                response = requests.get(api_url, timeout=7, headers={'User-Agent': 'Mozilla/5.0'})
+                if response.status_code == 200:
+                    res_json = response.json()
+                    if res_json:
+                        data = res_json
+                        break
+            except:
+                continue
+
+        if not data:
             try:
                 bot.delete_message(message.chat.id, sent_msg.message_id)
             except:
@@ -469,7 +485,7 @@ def handle_like(message):
             error_msg = (
                 "❌ *LIKE SENT ERROR!*\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
-                f"API Server Error: `{str(e)}`\n"
+                "All API Servers are busy or player UID not found!\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
@@ -477,9 +493,11 @@ def handle_like(message):
             return
 
         try:
-            basic_info = data.get('basicInfo', {})
-            name = basic_info.get('nickname', 'Unknown Player')
-            likes_after = int(basic_info.get('liked', 0))
+            # বিভিন্ন এপিআইয়ের আলাদা ফরম্যাট হ্যান্ডেল করার ব্যবস্থা
+            basic_info = data.get('basicInfo', data.get('accountInfo', data.get('player_info', data)))
+            
+            name = basic_info.get('nickname', basic_info.get('name', 'Unknown Player'))
+            likes_after = int(basic_info.get('liked', basic_info.get('likes', 0)))
             likes_given = random.randint(110, 200)
             likes_before = max(0, likes_after - likes_given)
 
@@ -526,7 +544,7 @@ def handle_like(message):
             error_msg = (
                 "❌ *LIKE SENT ERROR!*\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
-                "Player UID not found or region mismatch!\n"
+                "Data parsing error or region mismatch!\n"
                 "━━━━━━━━━━━━━━━━━━━━━\n"
                 "🤖 Bot By: `LDR-YSN`"
             )
